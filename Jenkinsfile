@@ -24,15 +24,29 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker image..."
-                    sh "docker build -t ${IMAGE_NAME}:latest ."
+                    if (isUnix()) {
+                        sh "docker build -t ${IMAGE_NAME}:latest ."
+                    } else {
+                        bat "docker build -t %IMAGE_NAME% ."
+                    }
 
                     echo "Logging in to Docker Hub..."
-                    sh """
-                    echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-                    """
+                    withCredentials([usernamePassword(credentialsId: 'dockerhub_creds', 
+                                                     usernameVariable: 'DOCKERHUB_USER', 
+                                                     passwordVariable: 'DOCKERHUB_PASS')]) {
+                        if (isUnix()) {
+                            sh 'echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin'
+                        } else {
+                            bat 'echo %DOCKERHUB_PASS% | docker login -u %DOCKERHUB_USER% --password-stdin'
+                        }
+                    }
 
                     echo "Pushing Docker image..."
-                    sh "docker push ${IMAGE_NAME}:latest"
+                    if (isUnix()) {
+                        sh "docker push ${IMAGE_NAME}:latest"
+                    } else {
+                        bat "docker push %IMAGE_NAME%"
+                    }
                 }
             }
         }
